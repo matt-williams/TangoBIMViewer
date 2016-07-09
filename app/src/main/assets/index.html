@@ -1,0 +1,100 @@
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=UTF-8">
+    <title>BIM Web Client</title>
+    <style type="text/css">
+        body {
+            padding: 0; margin: 0;
+        }
+        #viewerContainer {
+            height: 450px;
+            width: 600px;
+        }
+        .boxed {
+            border: 1px solid black;
+            padding: 5px;
+            margin-right:5px;
+        }
+        p, div {
+            margin: 10px;
+        }
+        form {
+            display: inline;
+        }
+    </style>
+    <script src="jquery-1.11.3.min.js"></script>
+    <script>
+        if (console == undefined) {
+            var console = {
+                log: function(msg) {
+                },
+                error: function(msg) {
+                }
+            };
+        }
+    </script>
+    <script src="three.min.js"></script>
+    <script src="TrackballControls.js"></script>
+    <script src="ThreeJsViewer.js"></script>
+    <script src="JSONListLoader.js"></script>
+    <script src="Base64.js"></script>
+    <script>
+        var viewer;
+        var username = "admin@bimserver.now.im";
+        var password = "secret";
+        var roid = "65539";
+        var token = null;
+        $.ajaxSetup({
+            url: 'http://52.91.199.184:8080/json',
+            type: 'POST',
+            contentType: 'text/plain' // suppress preflight
+        });
+        $(document).ready(function() {
+            viewer = new ThreeJsViewer();
+            viewer.init($('#viewerContainer'));
+            viewer.onClick = function(id) {
+                if (id==null) {
+                    $('#selection').html('nothing');
+                    return;
+                }
+                $.ajax({
+                    data: JSON.stringify({token:token,request:{interface:'Bimsie1LowLevelInterface',method:'getDataObjectByGuid',parameters:{roid:roid,guid:id}}}),
+                    success: function(res,s,req){
+                        $('#selection').html(id + ' - ' + res.response.result.name + ' - ' + res.response.result.type);
+                    }
+                });
+            };
+            viewer.animate();
+            $.ajax({
+                data: JSON.stringify({request:{interface:'Bimsie1AuthInterface',method:'login',parameters:{username:username,password:password}}}),
+                success: function(response,status,request){
+                    if('exception' in response.response)  $('#errors').text('Error: '+response.response.exception.message);
+                    else {
+                        token = response.response.result;
+                        $.ajax({
+                            data: JSON.stringify({token:token,request:{interface:'Bimsie1ServiceInterface',method:'getSerializerByName',parameters:{serializerName:'ThreeJs'}}}),
+                            success: function(res1,s1,req1){
+                                if('result' in res1.response) $.ajax({
+                                    data: JSON.stringify({token:token,request:{interface:'Bimsie1ServiceInterface',method:'download',parameters:{serializerOid:res1.response.result.oid,sync:true, showOwn:true,roid:roid}}}),
+                                    success: function(res2,s2,req2){
+                                        if('result' in res2.response) $.ajax({
+                                            data: JSON.stringify({token:token,request:{interface:'Bimsie1ServiceInterface',method:'getDownloadData',parameters:{actionId:res2.response.result}}}),
+                                            success: function(res3,s3,req3){
+                                                viewer.loadSerializedModel(Base64.decode(res3.response.result.file));
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<div id="viewerContainer"></div>
+<p class="boxed">selected: <span id="selection">nothing</span></p>
+</body>
+</html>
