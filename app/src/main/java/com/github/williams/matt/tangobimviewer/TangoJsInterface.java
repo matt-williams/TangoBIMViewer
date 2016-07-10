@@ -50,7 +50,7 @@ public class TangoJsInterface {
         try {
             return new JSONArray(mRotation).toString();
         } catch (JSONException e) {
-            return "[0, 0, 0, 0]";
+            return "[0, 0, 0, 1]";
         }
     }
 

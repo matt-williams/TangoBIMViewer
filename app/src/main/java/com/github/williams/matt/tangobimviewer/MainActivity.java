@@ -59,7 +59,8 @@ public class MainActivity extends Activity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int INVALID_TEXTURE_ID = 0;
 //    private static final String ADF_UUID = "c6d4c678-bf61-4070-9938-96333ffd1e95";
-    private static final String ADF_UUID = "28271459-fa93-4f1a-9512-2146958e7b46";
+//    private static final String ADF_UUID = "28271459-fa93-4f1a-9512-2146958e7b46";
+    private static final String ADF_UUID = "d16c39ad-47c3-4dc3-8533-b76f32b0dcb0";
 
     private GLSurfaceView mSurfaceView;
     private CameraRenderer mRenderer;
@@ -86,7 +87,9 @@ public class MainActivity extends Activity {
         mWebView.setBackgroundColor(Color.TRANSPARENT);
         mWebView.setLayerType(View.LAYER_TYPE_NONE, null);
         mWebView.addJavascriptInterface(jsInterface, TangoJsInterface.JS_NAME);
-        mWebView.load("file:///android_asset/index.html", null);
+        //mWebView.load("file:///android_asset/index.html", null);
+        mWebView.load("http://bimserver.now.im:8000/index.html", null);
+
     }
 
     @Override
@@ -166,7 +169,7 @@ public class MainActivity extends Activity {
         config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
         config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION, ADF_UUID);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, true);
+        config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, false);
         return config;
     }
 
@@ -181,13 +184,15 @@ public class MainActivity extends Activity {
         framePairs.add(new TangoCoordinateFramePair(
                 TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
                 TangoPoseData.COORDINATE_FRAME_DEVICE));
+//        framePairs.add(new TangoCoordinateFramePair(
+//                TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
+//                TangoPoseData.COORDINATE_FRAME_DEVICE));
 
         // Listen for new Tango data
         mTango.connectListener(framePairs, new OnTangoUpdateListener() {
             @Override
             public void onPoseAvailable(final TangoPoseData pose) {
-                Log.e("MainActivity", "Got pose " + pose);
-                // We are not using TangoPoseData for this application.
+//                Log.e("MainActivity", "Got pose " + pose);
                 jsInterface.setPoseData(pose);
             }
 

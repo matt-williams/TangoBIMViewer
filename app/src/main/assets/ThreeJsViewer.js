@@ -46,7 +46,9 @@ function ThreeJsViewer(){
         container.click({viewer: this}, this.onMouseDown);
         container.append(this.renderer.domElement);
         this.container = container;
-        this.onclick = function(){}; 
+        this.onclick = function(){};
+
+        this.maxExtent = 0;
     };
 
     this.centerScene = function(){
@@ -59,8 +61,11 @@ function ThreeJsViewer(){
         var ext = {x: bb.max.x - bb.min.x, y: bb.max.y - bb.min.y, z: bb.max.z - bb.min.z};
         this.root.position.set(ext.x * -.5 - bb.min.x, ext.y * -.5 - bb.min.y, ext.z * -.5 - bb.min.z);
         var maxExtent = Math.max(ext.x, ext.y, ext.z);
+/*
         this.camera.position.set(maxExtent, maxExtent, maxExtent);
         this.camera.lookAt(new THREE.Vector3(0,0,0));
+*/
+        this.maxExtent = maxExtent;
         // TODO: adjust clipping
     };
 
@@ -123,6 +128,13 @@ function ThreeJsViewer(){
 
     this.render = function() {
         this.controls.update();
+        var translation = JSON.parse(tango.getTranslation());
+        this.camera.position.set(-translation[0], -translation[1], -translation[2]);
+//        var rotation = JSON.parse(tango.getRotation());
+//        this.camera.rotation.setFromQuaternion(rotation, undefined, true);
+        this.camera.position.set(this.maxExtent - translation[0] * 1000, this.maxExtent - translation[1] * 1000, this.maxExtent - translation[2] * 1000);
+        console.log(translation);
+        this.camera.lookAt(new THREE.Vector3(0,0,0));
         this.renderer.render(this.scene,this.camera);
     };
 }

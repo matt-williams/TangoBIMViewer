@@ -10,18 +10,34 @@
             margin: 0px;
             padding: 0px;
         }
-        .boxed {
-            border: 1px solid black;
-            padding: 5px;
-            margin-right:5px;
-        }
-        p {
-            margin: 10px;
-            padding: 5px;
+        #alertContainer {
             position: absolute;
-            top: 80%;
-            width: 90%;
-            height: 15%;
+            top: 60%;
+            left: 0px;
+            text-align: center;
+            width: 100%;
+            font-family: sans-serif;
+            color: yellow;
+        }
+        #infoContainer {
+            margin: 2%;
+            padding: 1%;
+            position: absolute;
+            top: 0px;
+            width: 44%;
+            left: 50%;
+            height: 94%;
+            background-color: rgba(0, 0, 128, 0.75);
+            color: white;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+        #infoContainer > * { 
+            margin: 0px; 
+            padding: 0px; 
+        }
+        #infoDetails {
+            overflow-y: auto;
         }
         form {
             display: inline;
@@ -61,13 +77,31 @@
             viewer.init($('#viewerContainer'));
             viewer.onClick = function(id) {
                 if (id==null) {
-                    $('#selection').html('nothing');
+                    $('#infoContainer').hide();
                     return;
                 }
                 $.ajax({
                     data: JSON.stringify({token:token,request:{interface:'Bimsie1LowLevelInterface',method:'getDataObjectByGuid',parameters:{roid:roid,guid:id}}}),
                     success: function(res,s,req){
-                        $('#selection').html(id + ' - ' + res.response.result.name + ' - ' + res.response.result.type);
+                        $('#infoName').html(res.response.result.name.replace(/_/g, ' '));
+                        $('#infoId').html(id);
+                        $('#infoType').html(res.response.result.type);
+$('#infoDetails').empty();
+for (i = 0; i < res.response.result.values.length; i++) {
+  var val = res.response.result.values[i];
+  if (val.fieldName != "Name") {
+    if (val.__type == "SSimpleDataValue") {
+      var li = $('<li></li>');
+      li.text(val.fieldName + ": " + ((val.stringValue) ? val.stringValue : "<none>"));
+      $('#infoDetails').append(li);
+    //} else if (val.__type == "SListDataValue") {
+    //  $('#infoContainer').append($('<li></li>').text(val.fieldName + ": " + ((val.values.length > 0) ? val.values.join(', ') : "<none>")));
+    } else {
+      console.log("Not handling " + val.fieldName + " of type " + val.__type);
+    }
+  }
+}
+                        $('#infoContainer').show();
                     }
                 });
             };
@@ -100,13 +134,21 @@
             })
             }, 10000);
             window.setInterval(function() {
-                $('#selection').html(tango.getStatus());
+                var status = tango.getStatus();
+                status = (status == "VALID") ? "" : status;
+                $('#alertContainer').text(status);
             }, 100);
         });
     </script>
 </head>
 <body>
 <div id="viewerContainer"></div>
-<p class="boxed">selected: <span id="selection">nothing</span></p>
+<h1 id="alertContainer"></h1>
+<div id="infoContainer" style="display: none;">
+  <h3 id="infoName"></h3>
+  <p id="infoId"></p>
+  <p id="infoType"></p>
+  <ul id="infoDetails"></ul>
+</div>
 </body>
 </html>
