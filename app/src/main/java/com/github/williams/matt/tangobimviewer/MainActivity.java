@@ -38,6 +38,7 @@ import android.widget.TextView;
 import org.xwalk.core.XWalkView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -57,11 +58,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MainActivity extends Activity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int INVALID_TEXTURE_ID = 0;
-    private static final String sTimestampFormat = "Timestamp: %f";
+//    private static final String ADF_UUID = "c6d4c678-bf61-4070-9938-96333ffd1e95";
+    private static final String ADF_UUID = "28271459-fa93-4f1a-9512-2146958e7b46";
 
     private GLSurfaceView mSurfaceView;
     private CameraRenderer mRenderer;
     private XWalkView mWebView;
+    TangoJsInterface jsInterface = new TangoJsInterface();
 
     private Tango mTango;
     private TangoConfig mConfig;
@@ -77,12 +80,13 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         mSurfaceView = (GLSurfaceView) findViewById(R.id.surfaceview);
+        setupRenderer();
+
         mWebView = (XWalkView) findViewById(R.id.webview);
         mWebView.setBackgroundColor(Color.TRANSPARENT);
         mWebView.setLayerType(View.LAYER_TYPE_NONE, null);
+        mWebView.addJavascriptInterface(jsInterface, TangoJsInterface.JS_NAME);
         mWebView.load("file:///android_asset/index.html", null);
-        // Set-up a dummy OpenGL renderer associated with this surface view
-        setupRenderer();
     }
 
     @Override
@@ -115,6 +119,7 @@ public class MainActivity extends Activity {
                     }
                     try {
                         mTango.connect(mConfig);
+                        jsInterface.setIntrinsics(mTango.getCameraIntrinsics(TangoCameraIntrinsics.TANGO_CAMERA_COLOR));
                         mIsConnected = true;
                     } catch (TangoOutOfDateException e) {
                         Log.e(TAG, getString(R.string.exception_out_of_date), e);
@@ -130,6 +135,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         mSurfaceView.onPause();
+
         // Synchronize against disconnecting while the service is being used in the OpenGL
         // thread or in the UI thread.
         // NOTE: DO NOT lock against this same object in the Tango callback thread.
@@ -158,6 +164,9 @@ public class MainActivity extends Activity {
         TangoConfig config = new TangoConfig();
         config = tango.getConfig(config.CONFIG_TYPE_DEFAULT);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
+        config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
+        config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION, ADF_UUID);
+        config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, true);
         return config;
     }
 
@@ -168,13 +177,18 @@ public class MainActivity extends Activity {
     private void setTangoListeners() {
         // Lock configuration and connect to Tango
         // Select coordinate frame pair
-        ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<TangoCoordinateFramePair>();
+        final ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<TangoCoordinateFramePair>();
+        framePairs.add(new TangoCoordinateFramePair(
+                TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+                TangoPoseData.COORDINATE_FRAME_DEVICE));
 
         // Listen for new Tango data
         mTango.connectListener(framePairs, new OnTangoUpdateListener() {
             @Override
             public void onPoseAvailable(final TangoPoseData pose) {
+                Log.e("MainActivity", "Got pose " + pose);
                 // We are not using TangoPoseData for this application.
+                jsInterface.setPoseData(pose);
             }
 
             @Override
@@ -191,8 +205,6 @@ public class MainActivity extends Activity {
             public void onFrameAvailable(int cameraId) {
                 // This will get called every time a new RGB camera frame is available to be
                 // rendered.
-                Log.d(TAG, "onFrameAvailable");
-
                 if (cameraId == TangoCameraIntrinsics.TANGO_CAMERA_COLOR) {
                     // Now that we are receiving onFrameAvailable callbacks, we can switch
                     // to RENDERMODE_WHEN_DIRTY to drive the render loop from this callback.
@@ -232,7 +244,6 @@ public class MainActivity extends Activity {
         mRenderer = new CameraRenderer(new CameraRenderer.RenderCallback() {
             @Override
             public void preRender() {
-                Log.d(TAG, "preRender");
                 // This is the work that you would do on your main OpenGL render thread.
 
                 // We need to be careful to not run any Tango-dependent code in the OpenGL
@@ -252,7 +263,6 @@ public class MainActivity extends Activity {
                         mConnectedTextureIdGlThread = mRenderer.getTextureId();
                         mTango.connectTextureId(TangoCameraIntrinsics.TANGO_CAMERA_COLOR,
                                 mRenderer.getTextureId());
-                        Log.d(TAG, "connected to texture id: " + mRenderer.getTextureId());
                     }
 
                     // If there is a new RGB camera frame available, update the texture and

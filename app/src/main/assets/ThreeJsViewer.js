@@ -3,7 +3,7 @@ function ThreeJsViewer(){
     this.selectedMaterial = new THREE.MeshPhongMaterial({ color: 0xffff00 });
     this.unselectedMaterial = new THREE.MeshPhongMaterial({color: 0xFF0000});
 
-    this.init = function(container) {
+    this.init = function(container, fov, aspectRatio) {
 
         this.projector = new THREE.Projector();
         this.size = {width: container.width(), height: container.height()};
@@ -15,9 +15,9 @@ function ThreeJsViewer(){
 
         this.scene = new THREE.Scene();
 
-        this.camera = new THREE.PerspectiveCamera(50, this.size.width / this.size.height, 1, 100000); // fov, aspect, near, far
+        this.camera = new THREE.PerspectiveCamera(tango.getFov(), tango.getAspectRatio(), 1, 100000); // fov, aspect, near, far
         this.camera.up.set(0, 0, 1);
-        this.camera.position.set(1, 1, 1);
+        this.camera.position.set(0, 0, 0);
 
         this.controls = new THREE.TrackballControls(this.camera, this.renderer.domElement);
         this.controls.minDistance = 0.1;
