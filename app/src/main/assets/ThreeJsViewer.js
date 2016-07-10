@@ -3,7 +3,7 @@ function ThreeJsViewer(){
     this.selectedMaterial = new THREE.MeshPhongMaterial({ color: 0xffff00 });
     this.unselectedMaterial = new THREE.MeshPhongMaterial({color: 0xFF0000});
 
-    this.init = function(container, fov, aspectRatio) {
+    this.init = function(container) {
 
         this.projector = new THREE.Projector();
         this.size = {width: container.width(), height: container.height()};
@@ -15,7 +15,8 @@ function ThreeJsViewer(){
 
         this.scene = new THREE.Scene();
 
-        this.camera = new THREE.PerspectiveCamera(tango.getFov(), tango.getAspectRatio(), 1, 100000); // fov, aspect, near, far
+        //this.camera = new THREE.PerspectiveCamera(tango.getFov(), tango.getAspectRatio(), 1, 100000); // fov, aspect, near, far
+        this.camera = new THREE.PerspectiveCamera(50, this.size.width / this.size.height, 1, 100000); // fov, aspect, near, far
         this.camera.up.set(0, 0, 1);
         this.camera.position.set(0, 0, 0);
 
@@ -26,8 +27,11 @@ function ThreeJsViewer(){
         this.controls.screen.width =  this.size.width;
         this.controls.screen.height = this.size.height;
         
+        this.root2 = new THREE.Object3D();
+        this.scene.add(this.root2);
+
         this.root = new THREE.Object3D();
-        this.scene.add(this.root);
+        this.root2.add(this.root);
 
         var light1 = new THREE.DirectionalLight(0xffffff, 2);
         light1.position.x = .5;
@@ -59,12 +63,15 @@ function ThreeJsViewer(){
             object.material = material;
         });
         var ext = {x: bb.max.x - bb.min.x, y: bb.max.y - bb.min.y, z: bb.max.z - bb.min.z};
-        this.root.position.set(ext.x * -.5 - bb.min.x, ext.y * -.5 - bb.min.y, ext.z * -.5 - bb.min.z);
+this.root.position.set(0, 0, 0);
+this.root.rotateZ(Math.PI * -0.52);
+        //this.root.position.set(ext.x * -.5 - bb.min.x, ext.y * -.5 - bb.min.y, ext.z * -.5 - bb.min.z);
+        this.root.translateX(ext.x * -.5 - bb.min.x);
+this.root.translateY(ext.y * -.5 - bb.min.y);
+this.root.translateZ(ext.z * -.5 - bb.min.z);
+this.root.translateZ(2500);
+this.root.translateY(6000);
         var maxExtent = Math.max(ext.x, ext.y, ext.z);
-/*
-        this.camera.position.set(maxExtent, maxExtent, maxExtent);
-        this.camera.lookAt(new THREE.Vector3(0,0,0));
-*/
         this.maxExtent = maxExtent;
         // TODO: adjust clipping
     };
@@ -127,14 +134,21 @@ function ThreeJsViewer(){
     };
 
     this.render = function() {
-        this.controls.update();
-        var translation = JSON.parse(tango.getTranslation());
-        this.camera.position.set(-translation[0], -translation[1], -translation[2]);
-//        var rotation = JSON.parse(tango.getRotation());
-//        this.camera.rotation.setFromQuaternion(rotation, undefined, true);
-        this.camera.position.set(this.maxExtent - translation[0] * 1000, this.maxExtent - translation[1] * 1000, this.maxExtent - translation[2] * 1000);
-        console.log(translation);
-        this.camera.lookAt(new THREE.Vector3(0,0,0));
-        this.renderer.render(this.scene,this.camera);
+        if (tango.getStatus() == "VALID") {
+            this.controls.update();
+            var translation = JSON.parse(tango.getTranslation());
+            this.camera.position.set(translation[0] * 1500, translation[1] * 1500, translation[2] * 1500);
+            //this.camera.position.set(this.ranslation[0], this.translation[1], this.translation[2]);
+            //this.camera.position.set(this.maxExtent - translation[0] * 10000, this.maxExtent - translation[1] * 10000, this.maxExtent - translation[2] * 10000);
+            var rotation = JSON.parse(tango.getRotation());
+            var quat = new THREE.Quaternion();
+            quat.fromArray(rotation, 0);
+            this.camera.rotation.setFromQuaternion(quat, undefined, true);
+            //console.log("Ours: " + this.camera.rotation.toArray());
+            //this.camera.lookAt(new THREE.Vector3(0,0,0));
+            //console.log("THeirs: " + this.camera.rotation.toArray());
+
+            this.renderer.render(this.scene,this.camera);
+       }
     };
 }
